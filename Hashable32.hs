@@ -11,7 +11,7 @@ import Text.Printf
 type Hash = Word32
 
 showHash :: Hash -> String
-showHash h = printf "%#010x" h
+showHash = printf "%#010x"
 showsHash = showString . showHash
 
 newtype VisiHash = VH Hash
