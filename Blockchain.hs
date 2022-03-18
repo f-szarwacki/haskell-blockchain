@@ -6,6 +6,8 @@ import Hashable32
 import HashTree
 import PPrint
 import Utils
+import Data.Bool (Bool(False, True))
+import Data.Maybe (Maybe(Nothing))
 
 type Address = Hash
 type Amount = Word32
@@ -44,7 +46,7 @@ blockReward = 50*coin
 coinbaseTx miner = Tx {txFrom = 0, txTo = miner, txAmount = blockReward}
 
 validNonce :: BlockHeader -> Bool
-validNonce b = (hash b) `mod` (2^difficulty) == 0
+validNonce b = hash b `mod` (2^difficulty) == 0
 
 tx1 = Tx
   { txFrom = hash "Alice"
@@ -55,8 +57,15 @@ tx1 = Tx
 type Miner = Address
 type Nonce = Word32
 
-mineBlock :: Miner -> Hash -> [Transaction] -> Block
-mineBlock miner parent txs = undefined
+mineBlock :: Miner -> Hash -> [Transaction] -> Block -- TODO max value should be taken from somewhere, not hardcoded
+mineBlock miner parent txs = head (filter (validNonce . blockHdr) (map blockGen [0..(2^32 - 1)])) where
+    blockGen n = Block {
+      blockHdr = BlockHeader {
+        parent = parent,
+        coinbase = coinbaseTx miner,
+        txroot = treeHash $ buildTree $ coinbaseTx miner:txs, -- TODO will it be calculated once? 
+        nonce = n},
+      blockTxs = txs}
 
 genesis = block0
 block0 = mineBlock (hash "Satoshi") 0 []
@@ -72,10 +81,15 @@ chain = [block2, block1, block0]
 -- Just 0x0dbea380
 
 validChain :: [Block] -> Bool
-validChain = undefined
+validChain blocks = case verifyChain blocks of
+  Nothing -> False
+  Just _ -> True
 
 verifyChain :: [Block] -> Maybe Hash
-verifyChain = undefined
+verifyChain [] = Just 0
+verifyChain blocks = foldr (\b h -> case h of
+  Nothing -> Nothing
+  Just hh -> verifyBlock b hh) (Just 0) blocks -- TODO rename variables; TODO find a cleaner way
 
 verifyBlock :: Block -> Hash -> Maybe Hash
 verifyBlock b@(Block hdr txs) parentHash = do
