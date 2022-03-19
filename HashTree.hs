@@ -46,7 +46,7 @@ type MerklePath = [Either Hash Hash]
 data MerkleProof a = MerkleProof a MerklePath
 
 merklePaths :: Hashable a => a -> Tree a -> [MerklePath]
-merklePaths x (Leaf h y) = [[] | hash x == h] -- equality of x and y or just their hashes?
+merklePaths x (Leaf h y) = [[] | hash x == h]
 merklePaths x (Node1 h t) = map (Left (treeHash t):) (merklePaths x t)
 merklePaths x (Node2 h t1 t2) = map (Left (treeHash t2):) (merklePaths x t1) ++ map (Right (treeHash t1):) (merklePaths x t2)
 
@@ -61,7 +61,9 @@ showMerklePath = concatMap showMerklePathElement where
   showMerklePathElement (Right h) = ">" ++ showHash h
 
 instance Show a => Show (MerkleProof a) where
-  show (MerkleProof x mp) = "MerkleProof " ++ show x ++ " " ++ showMerklePath mp -- TODO parenthesis!
+  showsPrec d (MerkleProof x mp) = showParen (d > app_prec) $
+   showString "MerkleProof " . showsPrec (app_prec + 1) x . showString " " . showString (showMerklePath mp) where
+     app_prec = 10
 
 verifyProof :: Hashable a => Hash -> MerkleProof a -> Bool
 verifyProof h (MerkleProof x mp) = h == foldr (\a b -> case a of
