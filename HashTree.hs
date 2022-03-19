@@ -53,7 +53,7 @@ merklePaths x (Node2 h t1 t2) = map (Left (treeHash t2):) (merklePaths x t1) ++ 
 buildProof :: Hashable a => a -> Tree a -> Maybe (MerkleProof a)
 buildProof x t = case merklePaths x t of
   [] -> Nothing
-  mp:mps -> Just (MerkleProof x mp)
+  mp:_ -> Just (MerkleProof x mp)
 
 showMerklePath :: MerklePath -> String
 showMerklePath = concatMap showMerklePathElement where
@@ -66,8 +66,7 @@ instance Show a => Show (MerkleProof a) where
 verifyProof :: Hashable a => Hash -> MerkleProof a -> Bool
 verifyProof h (MerkleProof x mp) = h == foldr (\a b -> case a of
  Left h1 -> hash (b, h1)
- Right h2 -> hash (h2, b)
-    ) (hash x) mp
+ Right h2 -> hash (h2, b)) (hash x) mp
 
 -- >>> map showMerklePath $ merklePaths 'i' $ buildTree "bitcoin"
 

@@ -8,7 +8,7 @@ import HashTree
 import PPrint
 import Utils
 import Data.Bool (Bool(False, True))
-import Data.Maybe (Maybe(Nothing))
+import Data.Maybe (Maybe(Nothing), fromJust)
 
 type Address = Hash
 type Amount = Word32
@@ -60,11 +60,12 @@ type Nonce = Word32
 
 mineBlock :: Miner -> Hash -> [Transaction] -> Block -- TODO max value should be taken from somewhere, not hardcoded
 mineBlock miner parent txs = head (filter (validNonce . blockHdr) (map blockGen [0..(2^32 - 1)])) where
+    root = buildTree $ coinbaseTx miner:txs
     blockGen n = Block {
       blockHdr = BlockHeader {
         parent = parent,
         coinbase = coinbaseTx miner,
-        txroot = treeHash $ buildTree $ coinbaseTx miner:txs, -- TODO will it be calculated once? 
+        txroot = treeHash root,
         nonce = n},
       blockTxs = txs}
 
@@ -138,7 +139,16 @@ validateReceipt r hdr = txrBlock r == hash hdr
                         && verifyProof (txroot hdr) (txrProof r)
 
 mineTransactions :: Miner -> Hash -> [Transaction] -> (Block, [TransactionReceipt])
-mineTransactions miner parent txs = undefined
+mineTransactions miner parent txs = (block, map (\tx -> TxReceipt (hash block) (fromJust (buildProof tx root))) txs)  where
+    root = buildTree $ coinbaseTx miner:txs
+    blockGen n = Block {
+      blockHdr = BlockHeader {
+        parent = parent,
+        coinbase = coinbaseTx miner,
+        txroot = treeHash root,
+        nonce = n},
+      blockTxs = txs}
+    block = head (filter (validNonce . blockHdr) (map blockGen [0..(2^32 - 1)]))
 
 {- | Pretty printing
 >>> runShows $ pprBlock block2
