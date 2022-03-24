@@ -58,8 +58,8 @@ tx1 = Tx
 type Miner = Address
 type Nonce = Word32
 
-mineBlock :: Miner -> Hash -> [Transaction] -> Block -- TODO max value should be taken from somewhere, not hardcoded
-mineBlock miner parent txs = head (filter (validNonce . blockHdr) (map blockGen [0..(2^32 - 1)])) where
+mineBlock :: Miner -> Hash -> [Transaction] -> Block
+mineBlock miner parent txs = head (filter (validNonce . blockHdr) (map blockGen [0..])) where
     root = buildTree $ coinbaseTx miner:txs
     blockGen n = Block {
       blockHdr = BlockHeader {
@@ -88,10 +88,7 @@ validChain blocks = case verifyChain blocks of
   Just _ -> True
 
 verifyChain :: [Block] -> Maybe Hash
-verifyChain [] = Just 0
-verifyChain blocks = foldr (\b h -> case h of
-  Nothing -> Nothing
-  Just hh -> verifyBlock b hh) (Just 0) blocks -- TODO rename variables; TODO find a cleaner way
+verifyChain bs = foldM (flip verifyBlock) 0 (reverse bs)
 
 verifyBlock :: Block -> Hash -> Maybe Hash
 verifyBlock b@(Block hdr txs) parentHash = do
